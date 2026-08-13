@@ -142,6 +142,21 @@ land in your real history. Netlify gets its own copy of these values in Step 4.
 
 ## Step 4 — Environment variables (the step that's easy to get wrong)
 
+### Option A — the CLI (fewer ways to go wrong)
+
+```powershell
+npm install -g netlify-cli    # once
+netlify login                 # opens a browser
+.\scripts\netlify-setup.ps1   # reads .env, sets both vars, redeploys
+npm run check:deploy          # confirm
+```
+
+The script pulls the credentials out of `.env`, sets them with
+`--scope functions builds`, lists what landed, and triggers a production build —
+so the Functions scope can't be missed and you can't forget the redeploy.
+
+### Option B — the dashboard
+
 **Project configuration → Environment variables → Add a variable**, twice:
 
 | Key | Value |
