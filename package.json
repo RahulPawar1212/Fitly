@@ -16,7 +16,8 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:push:turso": "node scripts/push-schema.mjs",
-    "db:tables:turso": "node scripts/push-schema.mjs --list"
+    "db:tables:turso": "node scripts/push-schema.mjs --list",
+    "check:deploy": "node scripts/check-deploy.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

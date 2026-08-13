@@ -53,3 +53,8 @@ next-env.d.ts
 
 # netlify
 .netlify
+
+# Anything *.local.* is a scratch file that may hold real credentials —
+# e.g. NETLIFY-ENV.local.txt, the values pasted into the Netlify dashboard.
+*.local.txt
+*.local.json
