@@ -1,6 +1,6 @@
 {
-  "name": "Fitness Tracker",
-  "short_name": "Fitness",
+  "name": "Fitlyfy",
+  "short_name": "Fitlyfy",
   "description": "Indian calorie and fitness tracker — meals, exercise, weight and water.",
   "start_url": "/",
   "display": "standalone",

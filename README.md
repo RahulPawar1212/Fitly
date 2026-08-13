@@ -1,8 +1,8 @@
-# Indian Fitness & Calorie Tracker
+# Fitlyfy
 
-A mobile-first, **multi-user** calorie and fitness tracker built around how Indian
-food is actually eaten — you log **2 rotis and a katori of dal**, not "180 g of
-wheat flatbread".
+A mobile-first, **multi-user** Indian calorie and fitness tracker, built around how
+Indian food is actually eaten — you log **2 rotis and a katori of dal**, not
+"180 g of wheat flatbread".
 
 Everyone signs up with an email and password and sees only their own data. The
 236-food catalogue is shared; meals, exercise, weight, water and custom foods are

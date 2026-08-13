@@ -65,7 +65,10 @@ export async function GET() {
   };
 
   const payload = {
-    format: 'fitness-tracker-export',
+    format: 'fitlyfy-export',
+    // Any importer should accept the previous identifier too, so backups taken
+    // before the app was named still restore.
+    formatAliases: ['fitness-tracker-export'],
     version: 2,
     exportedAt: new Date().toISOString(),
     profile,
@@ -81,7 +84,7 @@ export async function GET() {
   return new NextResponse(JSON.stringify(payload, null, 2), {
     headers: {
       'Content-Type': 'application/json',
-      'Content-Disposition': `attachment; filename="fitness-backup-${localDayKey()}.json"`,
+      'Content-Disposition': `attachment; filename="fitlyfy-backup-${localDayKey()}.json"`,
     },
   });
 }

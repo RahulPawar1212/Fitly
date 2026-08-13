@@ -69,16 +69,20 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
   return (
     <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col justify-center px-6 py-10">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500 text-3xl">
+        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500 text-3xl">
           🍛
         </div>
-        <h1 className="text-2xl font-semibold">
+        {/* The app's name, so the login screen identifies itself. */}
+        <p className="text-lg font-bold tracking-tight text-brand-600 dark:text-brand-400">
+          Fitlyfy
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold">
           {isSignup ? 'Create your account' : 'Welcome back'}
         </h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           {isSignup
             ? 'Track Indian meals in rotis and katoris, not grams.'
-            : 'Sign in to your fitness tracker.'}
+            : 'Sign in to keep tracking.'}
         </p>
       </div>
 

@@ -62,6 +62,11 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// Whether this module load is the one that creates the client. Captured BEFORE
+// the cache is populated below, because that assignment would otherwise make the
+// "first load" test always false and the log line never appear.
+const isFirstLoad = !globalForPrisma.prisma;
+
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 
 if (!isDeployed) globalForPrisma.prisma = prisma;
@@ -69,9 +74,9 @@ if (!isDeployed) globalForPrisma.prisma = prisma;
 /** True when running against Turso rather than the local file. */
 export const isRemoteDatabase = Boolean(tursoUrl);
 
-// Say which database we're on. Silent during the build (it would just be noise
-// in deploy logs) and only once per process thanks to the module cache.
-if (!isBuildPhase && !globalForPrisma.prisma) {
+// Say which database we're on — the single most useful line when "why is my data
+// missing?". Silent during the build, where it would just be deploy-log noise.
+if (!isBuildPhase && isFirstLoad) {
   console.log(
     `[db] ${isRemoteDatabase ? 'Turso (remote)' : `local ${path.join(process.cwd(), 'dev.db')}`}`,
   );

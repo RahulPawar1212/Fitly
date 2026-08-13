@@ -1,4 +1,4 @@
-# Deploying Fitly
+# Deploying Fitlyfy
 
 Getting the app live on **Netlify** with a **Turso** database, from Windows,
 without WSL.
@@ -6,6 +6,17 @@ without WSL.
 Code lives at <https://github.com/RahulPawar1212/Fitly> (already pushed).
 
 **Time:** about 25 minutes. **Cost:** free on both services.
+
+> ### Progress so far
+>
+> - ✅ **Step 1 — Turso database created:** `fitlydb-rahulpawar-fitly`
+>   (AWS Mumbai, `ap-south-1`).
+> - ✅ **Step 2 — schema and catalogue loaded:** 11 tables, 236 foods,
+>   59 exercises. Verified: sign-up, food search and export all work against it.
+> - ⬜ **Step 3 onwards** — Netlify. Start there.
+>
+> Your credentials are already in `.env`, commented out. Uncomment them only when
+> you need to touch the live database; see the note in that file.
 
 ---
 
@@ -38,7 +49,7 @@ and vice versa.
 2. **Create Database.** Name it `fitly`. Pick the region closest to you —
    `Bombay (bom)` or `Singapore (sin)` from India. Region affects speed only.
 3. On the database page, copy two things:
-   - **Database URL** — looks like `libsql://fitly-yourname.turso.io`
+   - **Database URL** — looks like `libsql://fitlydb-rahulpawar-fitly.aws-ap-south-1.turso.io`
    - **Auth token** — under *Create Token* / *Generate Token*. Choose **no
      expiry** unless you want to rotate it manually later.
 
@@ -60,7 +71,7 @@ Open `.env` and add the two values (keep `DATABASE_URL` as it is):
 ```ini
 DATABASE_URL="file:./dev.db"
 
-TURSO_DATABASE_URL="libsql://fitly-yourname.turso.io"
+TURSO_DATABASE_URL="libsql://fitlydb-rahulpawar-fitly.aws-ap-south-1.turso.io"
 TURSO_AUTH_TOKEN="paste-the-long-token-here"
 ```
 
@@ -75,7 +86,7 @@ npm run db:push:turso
 Expect:
 
 ```
-Target: fitly-yourname.turso.io
+Target: fitlydb-rahulpawar-fitly.aws-ap-south-1.turso.io
 
 Applying 20260813112553_init_multiuser…
 
@@ -106,7 +117,7 @@ npm run db:tables:turso
 ### Then comment the two lines out again
 
 ```ini
-# TURSO_DATABASE_URL="libsql://fitly-yourname.turso.io"
+# TURSO_DATABASE_URL="libsql://fitlydb-rahulpawar-fitly.aws-ap-south-1.turso.io"
 # TURSO_AUTH_TOKEN="..."
 ```
 
@@ -121,7 +132,7 @@ land in your real history. Netlify gets its own copy of these values in Step 4.
 1. <https://netlify.com> → sign up **with GitHub** (avoids a second authorisation
    step later).
 2. **Add new project** → **Import an existing project** → **GitHub** → authorise
-   → pick **Fitly**.
+   → pick **Fitly** (the repo name).
 3. Netlify auto-detects Next.js. The suggested build command `npm run build` and
    publish directory `.next` are correct — leave them.
 4. **Don't click Deploy yet.** Open **Add environment variables** first (Step 4),
@@ -135,7 +146,7 @@ land in your real history. Netlify gets its own copy of these values in Step 4.
 
 | Key | Value |
 |---|---|
-| `TURSO_DATABASE_URL` | `libsql://fitly-yourname.turso.io` |
+| `TURSO_DATABASE_URL` | `libsql://fitlydb-rahulpawar-fitly.aws-ap-south-1.turso.io` |
 | `TURSO_AUTH_TOKEN` | your token |
 
 For each one, set **Scopes**. This is the part that catches people:

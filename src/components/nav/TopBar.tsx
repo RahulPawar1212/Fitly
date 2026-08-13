@@ -11,6 +11,7 @@ export function TopBar({
   showHistory = true,
   showProfile = true,
   back,
+  brand = false,
   children,
 }: {
   title: ReactNode;
@@ -19,10 +20,18 @@ export function TopBar({
   showProfile?: boolean;
   /** href for a back chevron, when this screen is a sub-page. */
   back?: string;
+  /** Show the Fitlyfy wordmark above the title. Home screen only. */
+  brand?: boolean;
   children?: ReactNode;
 }) {
   return (
-    <header className="flex items-center gap-1 pt-4 pb-2">
+    <div className={brand ? 'pt-3' : undefined}>
+      {brand && (
+        <p className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">
+          Fitlyfy
+        </p>
+      )}
+      <header className={`flex items-center gap-1 pb-2 ${brand ? 'pt-0.5' : 'pt-4'}`}>
       {back && (
         <Link
           href={back}
@@ -69,6 +78,7 @@ export function TopBar({
           </svg>
         </Link>
       )}
-    </header>
+      </header>
+    </div>
   );
 }

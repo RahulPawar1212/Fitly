@@ -30,7 +30,7 @@ export default function TodayPage() {
   if (loading && !day) {
     return (
       <>
-        <TopBar title="Today" />
+        <TopBar brand title="Today" />
         <Spinner label="Loading your day" />
       </>
     );
@@ -39,7 +39,7 @@ export default function TodayPage() {
   if (error || !day) {
     return (
       <>
-        <TopBar title="Today" />
+        <TopBar brand title="Today" />
         <div className="rounded-2xl bg-white p-6 text-center dark:bg-slate-900">
           <p className="text-sm text-rose-600">{error ?? 'Could not load your day.'}</p>
           <p className="mt-2 text-xs text-slate-500">
@@ -58,7 +58,10 @@ export default function TodayPage() {
 
   return (
     <>
+      {/* `brand` shows the wordmark here only — the other tabs have their own
+          titles and don't need it repeated. */}
       <TopBar
+        brand
         title={dayKey === today ? 'Today' : formatDayLong(dayKey)}
         subtitle={formatDayLong(dayKey)}
       />
