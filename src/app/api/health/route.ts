@@ -20,11 +20,17 @@ export async function GET() {
   const token = process.env.TURSO_AUTH_TOKEN;
 
   // The platform marker db.ts uses to decide it must not fall back to a file.
-  const host = process.env.NETLIFY
+  //
+  // `NETLIFY` is deliberately NOT used: it is a build-time variable that never
+  // reaches function runtime. Netlify passes only URL, SITE_NAME and SITE_ID to
+  // functions, so SITE_ID is the reliable signal.
+  const host = process.env.SITE_ID
     ? 'netlify'
     : process.env.VERCEL
       ? 'vercel'
-      : null;
+      : process.env.AWS_LAMBDA_FUNCTION_NAME
+        ? 'aws-lambda'
+        : null;
 
   const env = {
     detectedHost: host ?? 'none (local)',

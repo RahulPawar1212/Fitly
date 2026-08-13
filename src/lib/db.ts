@@ -23,11 +23,18 @@ const tursoUrl = process.env.TURSO_DATABASE_URL;
  * the hosts themselves set.
  */
 const isDeployed = Boolean(
-  process.env.NETLIFY ||
+  // Netlify: `NETLIFY` is a BUILD-time variable and is NOT set at function
+  // runtime. Netlify documents exactly three read-only vars reaching functions —
+  // URL, SITE_NAME and SITE_ID — so SITE_ID is the marker to use. Getting this
+  // wrong is not harmless: the guard below silently stopped firing, and a
+  // deployed function tried to open a non-existent /var/task/dev.db instead of
+  // reporting the real problem.
+  process.env.SITE_ID ||
     process.env.VERCEL ||
     process.env.FLY_APP_NAME ||
     process.env.RENDER ||
-    process.env.K_SERVICE, // Cloud Run / Firebase App Hosting
+    process.env.K_SERVICE || // Cloud Run / Firebase App Hosting
+    process.env.AWS_LAMBDA_FUNCTION_NAME, // any Lambda-based host, incl. Netlify
 );
 
 // A hosted build imports this module while collecting page data, with no env
