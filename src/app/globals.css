@@ -1,0 +1,116 @@
+@import 'tailwindcss';
+
+/* Tailwind v4 has no tailwind.config.js — theme tokens live here. */
+@theme {
+  /* Brand: a warm Indian-spice orange, legible on both light and dark. */
+  --color-brand-50: oklch(0.97 0.02 55);
+  --color-brand-100: oklch(0.94 0.04 55);
+  --color-brand-200: oklch(0.88 0.08 55);
+  --color-brand-300: oklch(0.81 0.12 52);
+  --color-brand-400: oklch(0.74 0.16 48);
+  --color-brand-500: oklch(0.67 0.19 45);
+  --color-brand-600: oklch(0.6 0.19 42);
+  --color-brand-700: oklch(0.51 0.17 40);
+  --color-brand-800: oklch(0.42 0.14 38);
+  --color-brand-900: oklch(0.34 0.11 37);
+
+  /* Macro colours, reused by bars, the ring and the charts so a colour always
+     means the same nutrient. */
+  --color-protein: oklch(0.62 0.17 258);
+  --color-carb: oklch(0.72 0.16 75);
+  --color-fat: oklch(0.68 0.16 12);
+  --color-fibre: oklch(0.66 0.14 155);
+  --color-water: oklch(0.68 0.13 220);
+}
+
+@layer base {
+  html {
+    /* Kill the 300ms tap delay and iOS text-size inflation. */
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* iOS zooms the page when focusing an input below 16px. Never go smaller. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1rem);
+  }
+
+  /* Hide number-input spinners: the app uses its own +/- steppers, and the
+     native arrows are far too small for a thumb. */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  /* Respect a user's reduced-motion setting for the sheet and ring animations. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Bottom sheets slide up from the thumb zone. */
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  .animate-sheet-in {
+    animation: sheet-in 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.15s ease-out;
+  }
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-toast-in {
+    animation: toast-in 0.18s ease-out;
+  }
+
+  /* Horizontal chip rows: scrollable, no visible scrollbar. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

@@ -1,0 +1,283 @@
+// Fitness / calorie tracker — schema.
+//
+// Two conventions worth knowing before editing:
+//
+// 1. Log entries (FoodEntry, ExerciseEntry) store an immutable SNAPSHOT of the
+//    nutrition/MET numbers at the moment of logging, and keep the source id only
+//    for provenance. Correcting a food's calories tomorrow must not silently
+//    rewrite last month's totals.
+//
+// 2. A "day" is `dayKey`, the local calendar day as "YYYY-MM-DD" — never a
+//    DateTime. See src/lib/calc/dates.ts for why (timezone correctness).
+//
+// 3. Multi-user. Everything a person owns carries `userId`. Food and Exercise are
+//    the exception: `userId` is NULLABLE there, where null means "part of the
+//    shared built-in catalogue" — so all 236 seeded foods are visible to
+//    everyone while a custom food belongs to exactly one person. Every query on
+//    an owned model MUST filter by userId; see src/lib/session.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  // Prisma 7 driver adapters supply the connection, so there is deliberately no
+  // `url` here. Provider stays `sqlite` even though we talk to Turso/libsql.
+  provider = "sqlite"
+}
+
+/// A person, and their settings.
+///
+/// The profile fields live here rather than in a separate 1:1 table — they *are*
+/// per-user settings, so splitting them would add a join for nothing.
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique // stored lowercased; see src/lib/auth.ts
+  passwordHash String // scrypt, format "scrypt:N:r:p:salt:hash"
+
+  // --- profile / settings ---
+  name              String?
+  sex               String   @default("male") // "male" | "female"
+  birthYear         Int? // age is derived, so this survives a year rollover
+  heightCm          Float?
+  weightKg          Float? // current weight; mirrors the latest WeightLog
+  activityLevel     String   @default("moderate") // sedentary|light|moderate|active|veryActive
+  goalMode          String   @default("maintain") // lose|maintain|gain|custom
+  calorieGoalManual Int? // non-null overrides the computed TDEE-based goal
+  proteinGoalG      Int? // null => derived in calc/energy.ts
+  carbGoalG         Int?
+  fatGoalG          Int?
+  fibreGoalG        Int?
+  waterTargetMl     Int      @default(3000)
+  glassSizeMl       Int      @default(250)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  sessions       Session[]
+  mealSlots      MealSlot[]
+  foods          Food[]
+  foodEntries    FoodEntry[]
+  exercises      Exercise[]
+  exerciseEntries ExerciseEntry[]
+  waterLogs      WaterLog[]
+  weightLogs     WeightLog[]
+}
+
+/// An opaque login session. Deleting the row revokes it immediately, which is
+/// why this is a DB lookup rather than a self-contained JWT.
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique // sha256 of the cookie value — never the raw token
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Named meal slots (Breakfast, Lunch, High Tea, …). A table, not an enum, so
+/// the user can rename, reorder, add and deactivate them.
+model MealSlot {
+  id        String   @id @default(cuid())
+  userId    String
+  key       String // stable slug; unique per user, not globally
+  name      String // user-editable label
+  sortOrder Int      @default(0) // seeded in tens so a slot can be inserted between
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodEntries FoodEntry[]
+
+  @@unique([userId, key])
+  @@index([userId, isActive, sortOrder])
+}
+
+/// A food, with nutrition per ONE household serving (1 roti, 1 katori, …).
+///
+/// `userId` is NULL for the ~236 seeded built-ins, which everyone shares. A
+/// non-null userId marks a food one person created (`isCustom`), visible only to
+/// them. Search therefore filters `{ OR: [{ userId: null }, { userId }] }`.
+model Food {
+  id           String   @id @default(cuid())
+  userId       String? // null => shared built-in catalogue
+  name         String // "Roti / Chapati (medium, whole wheat)"
+  nameLower    String // SQLite has no case-insensitive LIKE, so search uses this
+  aliases      String   @default("") // "chapati,phulka,rotli" — also searched
+  category     String
+  cuisine      String   @default("indian")
+  servingLabel String // "1 roti", "1 katori (150 ml)" — never "100 g" for a dish
+  servingGrams Float? // reference weight, display only
+  kcal         Float // per ONE serving
+  proteinG     Float
+  carbG        Float
+  fatG         Float
+  fibreG       Float
+  isVeg        Boolean  @default(true)
+  isCustom     Boolean  @default(false) // user-created; the seeder never touches these
+  isArchived   Boolean  @default(false) // hidden from search, history stays readable
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user    User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries FoodEntry[]
+  usage   FoodUsage[]
+
+  @@index([userId])
+  @@index([nameLower])
+  @@index([category])
+  @@index([isArchived])
+}
+
+/// Per-user "Recent" and "Frequent" counters for a food.
+///
+/// These cannot live on Food itself: the built-in rows are shared, so a counter
+/// there would mean one person's logging reorders everyone else's list.
+model FoodUsage {
+  id         String   @id @default(cuid())
+  userId     String
+  foodId     String
+  usageCount Int      @default(0)
+  lastUsedAt DateTime @default(now())
+
+  food Food @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, foodId])
+  @@index([userId, lastUsedAt])
+  @@index([userId, usageCount])
+}
+
+/// One logged food, in one meal slot, on one day.
+model FoodEntry {
+  id         String  @id @default(cuid())
+  userId     String
+  dayKey     String // "YYYY-MM-DD" local calendar day
+  mealSlotId String
+  foodId     String? // provenance only — SetNull so deleting a food keeps history
+  servings   Float   @default(1) // multiplier on the snapshot below
+
+  // --- immutable snapshot, per ONE serving, taken at log time ---
+  nameSnapshot         String
+  servingLabelSnapshot String
+  kcalPerServing       Float
+  proteinPerServing    Float
+  carbPerServing       Float
+  fatPerServing        Float
+  fibrePerServing      Float
+
+  note      String?
+  loggedAt  DateTime @default(now()) // instant; intra-day ordering only, never bucketing
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealSlot MealSlot @relation(fields: [mealSlotId], references: [id], onDelete: Restrict)
+  food     Food?    @relation(fields: [foodId], references: [id], onDelete: SetNull)
+
+  @@index([userId, dayKey])
+  @@index([userId, dayKey, mealSlotId])
+  @@index([foodId])
+}
+
+/// An exercise with its MET value. See src/data/exercises.ts (Ainsworth).
+/// As with Food, `userId` is null for the shared built-in catalogue.
+model Exercise {
+  id         String   @id @default(cuid())
+  userId     String? // null => shared built-in catalogue
+  name       String // "Walking, brisk (5.6 km/h)"
+  nameLower  String
+  category   String // cardio|strength|walking|sport|flexibility|other
+  met        Float
+  intensity  String? // light|moderate|vigorous
+  isCustom   Boolean  @default(false)
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries ExerciseEntry[]
+  usage   ExerciseUsage[]
+
+  @@index([userId])
+  @@index([nameLower])
+  @@index([category])
+  @@index([isArchived])
+}
+
+/// Per-user usage counters for an exercise. See FoodUsage for why.
+model ExerciseUsage {
+  id         String   @id @default(cuid())
+  userId     String
+  exerciseId String
+  usageCount Int      @default(0)
+  lastUsedAt DateTime @default(now())
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exerciseId])
+  @@index([userId, lastUsedAt])
+  @@index([userId, usageCount])
+}
+
+/// One logged workout. kcalBurned is materialized from the snapshot MET and the
+/// body weight at the time — burn depends on both, so both are frozen here.
+model ExerciseEntry {
+  id         String  @id @default(cuid())
+  userId     String
+  dayKey     String
+  exerciseId String?
+  minutes    Float
+
+  // --- immutable snapshot ---
+  nameSnapshot         String
+  metSnapshot          Float
+  bodyWeightKgSnapshot Float // the weight fed to the MET formula
+  kcalBurned           Float // = metBurnKcal(metSnapshot, bodyWeightKgSnapshot, minutes)
+
+  note      String?
+  loggedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  @@index([userId, dayKey])
+  @@index([exerciseId])
+}
+
+/// One row per user per day, incremented atomically by the +1 glass button.
+model WaterLog {
+  id        String   @id @default(cuid())
+  userId    String
+  dayKey    String
+  ml        Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Per-user, NOT global — otherwise two people can't both log water today.
+  @@unique([userId, dayKey])
+}
+
+/// One weigh-in per user per day; last write wins.
+model WeightLog {
+  id        String   @id @default(cuid())
+  userId    String
+  dayKey    String
+  weightKg  Float
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayKey])
+  @@index([userId, dayKey])
+}

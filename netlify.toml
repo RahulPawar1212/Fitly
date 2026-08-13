@@ -1,0 +1,15 @@
+# The Next.js runtime adapter is auto-installed by Netlify — deliberately no
+# [[plugins]] block here, which Netlify recommends against pinning.
+#
+# IMPORTANT: do NOT add a migration step to this build command. Migrations are
+# authored locally and applied to Turso by hand; see prisma/MIGRATIONS.md.
+#
+# TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be set in the Netlify UI or via
+# `netlify env:set`, with the **Functions** scope enabled. Variables defined in
+# this file are NOT available at function runtime, so they cannot live here.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
