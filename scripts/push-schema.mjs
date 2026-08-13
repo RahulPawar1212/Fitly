@@ -93,7 +93,8 @@ async function main() {
   const after = await listTables();
   console.log(`\nDone. ${after.length} tables created:`);
   console.log('  ' + after.join(', '));
-  console.log('\nNext: npm run db:seed:turso');
+  // With TURSO_* still set in .env, the seeder targets this same remote DB.
+  console.log('\nNext: npm run db:seed   (loads the shared food catalogue)');
 }
 
 main()

@@ -26,42 +26,44 @@ Consequences:
   local SQLite file, and applying schema changes during a deploy is how you lose
   data at 2am.
 
+> **Why not `turso db shell`?** That would be the obvious tool, but Turso's cloud
+> CLI still requires WSL on Windows. `scripts/push-schema.mjs` does the same job
+> through `@libsql/client`, so everything below works from PowerShell.
+> (Careful: the natively-installable `tursodb.exe` is a *different* tool — a local
+> engine — and cannot manage cloud databases.)
+
 ## Adding a schema change
 
-```bash
+```powershell
 # 1. Edit prisma/schema.prisma, then author the migration locally.
 npx prisma migrate dev --name add_something
 
-# 2. Apply the same SQL to Turso.
-turso db shell fitness-app < prisma/migrations/<timestamp>_add_something/migration.sql
+# 2. Apply it to Turso: uncomment TURSO_* in .env, then
+npm run db:push:turso
+#    ...and comment them out again afterwards.
 
 # 3. Record it in the log below.
 ```
 
-If you would rather not keep a local `dev.db` around, generate the SQL by diffing
-instead:
-
-```bash
-npx prisma migrate diff \
-  --from-empty \
-  --to-schema-datamodel prisma/schema.prisma \
-  --script > migration.sql
-```
+Note `push-schema.mjs` refuses to run when the target already has a `User` table,
+since the migrations are `CREATE TABLE`-only. For an incremental change to a
+populated database, run the new migration's SQL yourself — either through the
+dashboard's *Open in Outerbase* SQL editor, or with a one-off
+`client.executeMultiple(...)` script.
 
 ## First-time Turso setup
 
-```bash
-turso auth signup                              # or: turso auth login
-turso db create fitness-app
-turso db show fitness-app                      # -> TURSO_DATABASE_URL
-turso db tokens create fitness-app -e never    # -> TURSO_AUTH_TOKEN
+No CLI required — see [DEPLOY.md](../DEPLOY.md) for the full walkthrough.
 
-# Create the schema, then seed it.
-turso db shell fitness-app < prisma/migrations/20260812114923_init/migration.sql
-npm run db:seed        # with TURSO_* set in .env, this seeds Turso
+1. Create the database at <https://turso.tech>; copy its **URL** and an
+   **auth token** from the dashboard.
+2. Put both in `.env` as `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN`.
+3. Then:
 
-# Verify
-turso db shell fitness-app ".tables"
+```powershell
+npm run db:push:turso     # create the tables
+npm run db:seed           # load the shared food + exercise catalogue
+npm run db:tables:turso    # verify — lists tables with row counts
 ```
 
 ## Applied-migration log

@@ -139,28 +139,27 @@ and ephemeral, so writes are discarded and each function invocation gets a fresh
 copy. Production data lives in [Turso](https://turso.tech) (hosted libsql, free
 tier is ample for one person).
 
-```bash
-# 1. Create the database
-turso auth signup
-turso db create fitness-app
-turso db show fitness-app                      # -> TURSO_DATABASE_URL
-turso db tokens create fitness-app -e never    # -> TURSO_AUTH_TOKEN
+**→ Full step-by-step walkthrough: [DEPLOY.md](DEPLOY.md).** No WSL and no CLI
+needed — Turso's cloud CLI is WSL-only on Windows, so the guide uses the web
+dashboard plus `scripts/push-schema.mjs`.
 
-# 2. Create the schema there (see the caveat below)
-turso db shell fitness-app < prisma/migrations/20260812114923_init/migration.sql
+The short version, once you have a Turso URL and token in `.env`:
 
-# 3. Seed it: put TURSO_* in .env, then
-npm run db:seed
+```powershell
+npm run db:push:turso     # create the tables
+npm run db:seed           # load the shared food + exercise catalogue
+git push                  # Netlify builds and deploys automatically
 ```
 
-In Netlify, set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` via the UI or
-`netlify env:set`, **with the Functions scope enabled**. Variables defined in
-`netlify.toml` are not available at function runtime, and a variable missing the
-Functions scope works during the build but is `undefined` inside route handlers.
+In Netlify, set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in the UI **with the
+Functions scope enabled**. Variables defined in `netlify.toml` are not available at
+function runtime, and a variable missing the Functions scope works during the
+build but is `undefined` inside route handlers — which looks exactly like a code
+bug.
 
 > **Migrations can't run against Turso.** `prisma migrate deploy` needs a real
 > SQLite connection and Turso is HTTP-based. Author migrations against the local
-> `dev.db`, then apply the generated SQL with `turso db shell`. Never put a
+> `dev.db`, then push the generated SQL with `npm run db:push:turso`. Never put a
 > migration in the Netlify build command. Full details and the applied-migration
 > log are in [prisma/MIGRATIONS.md](prisma/MIGRATIONS.md).
 
