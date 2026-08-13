@@ -58,30 +58,40 @@ try {
   record('functions are running', false, err.message);
 }
 
-// 3. ★ The real test: signup reads the User table, so this fails when the
-//    connection is missing. A duplicate-email 409 also proves the query ran.
+// 3. ★ The real test. /api/health reports exactly which layer is broken —
+//    missing env vars, a rejected token, or absent tables — rather than the
+//    generic 500 every other route returns.
 let dbOk = false;
+let health = null;
 try {
-  const email = `deploy-check-${Date.now()}@example.invalid`;
-  const r = await req('/api/auth/signup', {
-    method: 'POST',
-    body: JSON.stringify({ email, password: 'deploy-check-password' }),
-  });
+  const r = await req('/api/health');
+  health = r.json;
 
-  if (r.status === 201) {
-    dbOk = true;
-    record('DATABASE CONNECTED', true, 'signup succeeded');
-    console.log(
-      `\n  Note: created a throwaway account (${email}).\n` +
-        '  Delete it from the Turso dashboard, or leave it — it is harmless.',
+  if (r.status === 404) {
+    // The endpoint predates this deploy; fall back to probing signup.
+    const s = await req('/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: `deploy-check-${Date.now()}@example.invalid`,
+        password: 'deploy-check-password',
+      }),
+    });
+    dbOk = s.status === 201 || s.status === 409;
+    record(
+      'DATABASE CONNECTED',
+      dbOk,
+      dbOk ? 'via signup probe' : `signup returned ${s.status} (deploy /api/health for detail)`,
     );
-  } else if (r.status === 409) {
+  } else if (health?.ok) {
     dbOk = true;
-    record('DATABASE CONNECTED', true, 'the User table was queried');
-  } else if (r.status === 500) {
-    record('DATABASE CONNECTED', false, 'signup returned 500');
+    record(
+      'DATABASE CONNECTED',
+      true,
+      `${health.database.accounts} account(s), ${health.database.sharedFoods} shared foods`,
+    );
+    if (health.warning) console.log(`  WARN  ${health.warning}`);
   } else {
-    record('DATABASE CONNECTED', false, `unexpected status ${r.status}: ${r.text.slice(0, 120)}`);
+    record('DATABASE CONNECTED', false, health?.problem ?? `status ${r.status}`);
   }
 } catch (err) {
   record('DATABASE CONNECTED', false, err.message);
@@ -109,11 +119,32 @@ console.log('\n' + '='.repeat(60));
 
 if (!dbOk) {
   console.log('  DATABASE NOT CONNECTED\n');
-  console.log('  In Netlify → Site settings → Environment variables, confirm');
-  console.log('  TURSO_DATABASE_URL and TURSO_AUTH_TOKEN both exist AND have');
-  console.log('  the "Functions" scope ticked. Then:');
-  console.log('    Deploys → Trigger deploy → Clear cache and deploy site');
-  console.log('  (env changes only apply to a new build)');
+
+  // Use the health endpoint's diagnosis when we have one — it distinguishes
+  // problems that otherwise look identical.
+  if (health?.problem === 'missing-env') {
+    console.log('  Cause: the function cannot see the environment variables.\n');
+    console.log(`    host detected      : ${health.env.detectedHost}`);
+    console.log(`    TURSO_DATABASE_URL : ${health.env.TURSO_DATABASE_URL.present ? 'present' : 'MISSING'}`);
+    console.log(`    TURSO_AUTH_TOKEN   : ${health.env.TURSO_AUTH_TOKEN.present ? 'present' : 'MISSING'}`);
+    console.log('\n  Fix: Netlify → Site settings → Environment variables.');
+    console.log('  Each variable needs the "Functions" scope ticked, then:');
+    console.log('    Deploys → Trigger deploy → Clear cache and deploy site');
+  } else if (health?.problem === 'schema-missing') {
+    console.log('  Cause: connected, but the tables are missing.');
+    console.log('  Fix: uncomment TURSO_* in .env, then `npm run db:push:turso`.');
+  } else if (health?.problem === 'bad-token') {
+    console.log('  Cause: the database rejected the auth token.');
+    console.log('  Fix: generate a new token in the Turso dashboard, update it');
+    console.log('  in Netlify and in .env, then redeploy.');
+  } else if (health?.detail) {
+    console.log(`  ${health.message}\n`);
+    console.log(`  detail: ${health.detail}`);
+  } else {
+    console.log('  Deploy the latest commit — /api/health will then say exactly');
+    console.log('  which layer is failing. Meanwhile, the usual cause is the');
+    console.log('  "Functions" scope on the Netlify environment variables.');
+  }
 } else if (failed.length === 0) {
   console.log('  All good. The app is live and talking to Turso.');
 } else {
