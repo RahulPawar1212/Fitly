@@ -41,14 +41,22 @@ if (-not (Test-Path .netlify/state.json)) {
 }
 
 # --- set the variables --------------------------------------------------------
-# `--scope functions builds` is explicit rather than relying on the default, so
-# the Functions scope is guaranteed regardless of CLI version defaults.
-Write-Host "`nSetting environment variables (scope: functions + builds)..." -ForegroundColor Cyan
-netlify env:set TURSO_DATABASE_URL $url   --scope functions builds | Out-Null
-netlify env:set TURSO_AUTH_TOKEN   $token --scope functions builds | Out-Null
+# Deliberately WITHOUT --scope. Specific scopes are a paid feature, and on the
+# free plan `--scope` is silently ignored: no output, no error, and no variable
+# created. The default is all contexts and all scopes, which includes Functions.
+Write-Host "`nSetting environment variables (all contexts, all scopes)..." -ForegroundColor Cyan
+netlify env:set TURSO_DATABASE_URL $url   | Out-Null
+netlify env:set TURSO_AUTH_TOKEN   $token | Out-Null
 
-Write-Host "`nVariables now carrying the Functions scope:" -ForegroundColor Cyan
-netlify env:list --scope functions
+# Verify rather than assume — a silent no-op is the failure mode being guarded
+# against here.
+Write-Host "`nVariables now on the site (production context):" -ForegroundColor Cyan
+netlify env:list --context production
+
+$check = netlify env:get TURSO_DATABASE_URL --context production 2>&1 | Out-String
+if ($check -notmatch 'libsql://') {
+  Fail "TURSO_DATABASE_URL did not persist. Run ``netlify link`` and try again."
+}
 
 # --- redeploy so the new environment takes effect -----------------------------
 Write-Host "`nDeploying (environment changes only apply to a new build)..." -ForegroundColor Cyan

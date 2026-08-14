@@ -142,18 +142,31 @@ land in your real history. Netlify gets its own copy of these values in Step 4.
 
 ## Step 4 — Environment variables (the step that's easy to get wrong)
 
-### Option A — the CLI (fewer ways to go wrong)
+### Option A — the CLI
 
 ```powershell
 npm install -g netlify-cli    # once
 netlify login                 # opens a browser
-.\scripts\netlify-setup.ps1   # reads .env, sets both vars, redeploys
+netlify link --name fitlyfy   # ← REQUIRED, and easy to miss
+.\scripts\netlify-setup.ps1
 npm run check:deploy          # confirm
 ```
 
-The script pulls the credentials out of `.env`, sets them with
-`--scope functions builds`, lists what landed, and triggers a production build —
-so the Functions scope can't be missed and you can't forget the redeploy.
+Two traps, both of which cost real time here:
+
+1. **`netlify link` is mandatory.** Without it the folder has no target site and
+   `env:set` writes nowhere. `netlify status` warns about this, but `env:set`
+   itself can look like it worked.
+2. **Do NOT pass `--scope`.** On the free plan specific scopes are a paid
+   feature, and `netlify env:set … --scope functions builds` is **silently
+   ignored** — no output, no error, no variable. Plain `netlify env:set KEY VALUE`
+   defaults to *all* contexts and *all* scopes, which is what you want.
+
+Always confirm the variable actually exists before assuming it does:
+
+```powershell
+netlify env:list --context production
+```
 
 ### Option B — the dashboard
 
