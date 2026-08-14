@@ -7,16 +7,35 @@ Code lives at <https://github.com/RahulPawar1212/Fitly> (already pushed).
 
 **Time:** about 25 minutes. **Cost:** free on both services.
 
-> ### Progress so far
+> ### Status: deployed and working
 >
-> - ✅ **Step 1 — Turso database created:** `fitlydb-rahulpawar-fitly`
->   (AWS Mumbai, `ap-south-1`).
-> - ✅ **Step 2 — schema and catalogue loaded:** 11 tables, 236 foods,
->   59 exercises. Verified: sign-up, food search and export all work against it.
-> - ⬜ **Step 3 onwards** — Netlify. Start there.
+> **<https://fitlyfy.netlify.app>** is live and connected to its database.
 >
-> Your credentials are already in `.env`, commented out. Uncomment them only when
-> you need to touch the live database; see the note in that file.
+> - ✅ Turso database `fitlydb-rahulpawar-fitly` (AWS Mumbai) — 11 tables,
+>   236 foods, 59 exercises.
+> - ✅ Netlify site `fitlyfy`, environment variables set via the CLI.
+> - ✅ Verified end to end on the deployed app: signup, profile (BMR 1669 /
+>   TDEE 2587), automatic meal-slot creation, and logging 2 rotis = 208 kcal.
+>
+> The steps below are kept as the reference for redoing this — a new environment,
+> a rotated token, or a second site. If something breaks, start with
+> `npm run check:deploy`.
+
+## Command reference
+
+| Task | Command |
+|---|---|
+| Is the deployment healthy? | `npm run check:deploy` |
+| Ship a code change | `git push` (Netlify rebuilds automatically) |
+| Force a rebuild, no code change | `git commit --allow-empty -m "redeploy" && git push` |
+| List the live env vars | `netlify env:list --context production` |
+| Set an env var | `netlify env:set KEY "value"` — **never** with `--scope` |
+| Create tables on Turso | `npm run db:push:turso` |
+| Refresh the food catalogue | `npm run db:seed` |
+| Inspect the remote database | `npm run db:tables:turso` |
+
+The `db:*` commands act on whichever database `.env` points at — uncomment
+`TURSO_*` to target the live one, and comment it back out afterwards.
 
 ---
 
@@ -140,61 +159,131 @@ land in your real history. Netlify gets its own copy of these values in Step 4.
 
 ---
 
-## Step 4 — Environment variables (the step that's easy to get wrong)
+## Step 4 — Environment variables
 
-### Option A — the CLI
+This is the step that decides whether the app can reach its database. Two
+variables, two ways to set them — **pick one**, they do the same thing.
+
+### The two values
+
+| Key | Value |
+|---|---|
+| `TURSO_DATABASE_URL` | `libsql://fitlydb-rahulpawar-fitly.aws-ap-south-1.turso.io` |
+| `TURSO_AUTH_TOKEN` | the long `eyJhbGci…` token from the Turso dashboard |
+
+Both are already in your `.env` (commented out) if you need to copy them.
+
+### Three rules that apply either way
+
+1. **The variables must be visible to Functions.** The API routes run as
+   serverless functions; a variable that only exists at build time is `undefined`
+   at runtime, which presents as *every request 500-ing* and looks exactly like a
+   code bug.
+2. **A redeploy is mandatory.** Environment variables are baked in at build time.
+   Saving them does nothing to the deploy that's already running.
+3. **Never put them in `netlify.toml`.** Variables declared there never reach
+   function runtime at all — and that file is committed to a public repo.
+
+---
+
+### Option A — the dashboard
+
+**Site configuration → Environment variables → Add a variable.** Once per
+variable:
+
+| Field | What to choose |
+|---|---|
+| **Key** | `TURSO_DATABASE_URL`, then `TURSO_AUTH_TOKEN` |
+| **Secret** | leave *Contains secret values* **unchecked** |
+| **Scopes** | **All scopes** — the default |
+| **Values** | *Same value for all deploy contexts*, then paste |
+
+On **Scopes**: "All scopes" already includes Functions, so it is the right answer.
+*Specific scopes* is a paid feature — if you see **Upgrade to unlock** next to it,
+ignore it; you don't need it.
+
+On **Secret**: ticking it means you can never read the value back, and Netlify's
+secrets scanning can then fail your build if the token appears anywhere in build
+output. Leave it off.
+
+Then redeploy: **Deploys → Trigger deploy → Clear cache and deploy site.**
+
+---
+
+### Option B — the CLI
 
 ```powershell
 npm install -g netlify-cli    # once
-netlify login                 # opens a browser
-netlify link --name fitlyfy   # ← REQUIRED, and easy to miss
-.\scripts\netlify-setup.ps1
-npm run check:deploy          # confirm
+netlify login                 # opens a browser to authorise
+netlify link --name fitlyfy   # ← REQUIRED; see trap 1
 ```
 
-Two traps, both of which cost real time here:
+Then either run the helper, which reads `.env`, sets both variables and verifies
+they persisted:
 
-1. **`netlify link` is mandatory.** Without it the folder has no target site and
-   `env:set` writes nowhere. `netlify status` warns about this, but `env:set`
-   itself can look like it worked.
-2. **Do NOT pass `--scope`.** On the free plan specific scopes are a paid
-   feature, and `netlify env:set … --scope functions builds` is **silently
-   ignored** — no output, no error, no variable. Plain `netlify env:set KEY VALUE`
-   defaults to *all* contexts and *all* scopes, which is what you want.
+```powershell
+.\scripts\netlify-setup.ps1
+```
 
-Always confirm the variable actually exists before assuming it does:
+…or do it by hand:
+
+```powershell
+netlify env:set TURSO_DATABASE_URL "libsql://fitlydb-rahulpawar-fitly.aws-ap-south-1.turso.io"
+netlify env:set TURSO_AUTH_TOKEN "eyJhbGci…"
+
+netlify env:list --context production      # confirm BOTH appear, scope "All"
+```
+
+Then trigger a rebuild. `git push` is the simplest — an empty commit is enough:
+
+```powershell
+git commit --allow-empty -m "Redeploy for env vars"
+git push
+```
+
+#### Two traps — both fail silently
+
+**1. `netlify link` is not optional.** Without it the folder has no target site,
+so `env:set` writes nowhere. `netlify status` says *"Did you run `netlify link`
+yet?"*, but `env:set` itself can look like it succeeded. Check with:
+
+```powershell
+netlify status        # should name the project, not warn about linking
+```
+
+**2. Do NOT pass `--scope`.** Specific scopes are a paid feature, and on the free
+plan `netlify env:set KEY VALUE --scope functions builds` is **silently ignored**
+— no output, no error, no variable created. Plain `env:set` defaults to *all*
+contexts and *all* scopes, which is what you want anyway.
+
+Because both failures are quiet, verify rather than assume:
 
 ```powershell
 netlify env:list --context production
 ```
 
-### Option B — the dashboard
+> `netlify env:get` reads the **dev** context by default, so it can report
+> "no value" for a variable that is set in production. Always pass
+> `--context production` when checking.
 
-**Project configuration → Environment variables → Add a variable**, twice:
+---
 
-| Key | Value |
-|---|---|
-| `TURSO_DATABASE_URL` | `libsql://fitlydb-rahulpawar-fitly.aws-ap-south-1.turso.io` |
-| `TURSO_AUTH_TOKEN` | your token |
+### Confirm it worked
 
-**Scopes:** leave it on **All scopes** — the default. That includes Functions,
-which is what the API routes need. (Selecting *specific* scopes is a paid feature;
-you don't need it, and "All scopes" is the correct answer regardless.)
+```powershell
+npm run check:deploy
+```
 
-**Values:** *Same value for all deploy contexts* is fine.
+Or open <https://fitlyfy.netlify.app/api/health>. You want:
 
-**Secret:** leave *Contains secret values* unchecked. Ticking it prevents the
-value being read back later, and Netlify's secrets scanning can then fail the
-build if the token appears anywhere in build output.
+```json
+{ "ok": true, "database": { "connected": true, "target": "turso (remote)",
+  "sharedFoods": 236 } }
+```
 
-Do **not** put these in `netlify.toml`. Variables declared there never reach
-functions at runtime, and they'd be committed to a public repo.
-
-⚠️ **After saving, you must redeploy.** Environment variables are baked in at
-build time, so an existing deploy will not pick them up:
-**Deploys → Trigger deploy → Clear cache and deploy site.**
-
-Then click **Deploy** (or trigger the redeploy).
+If `"present": false` appears against either variable, the function still cannot
+see them — recheck the scope, and make sure a **new build** has run since you
+saved them.
 
 ---
 
@@ -219,28 +308,28 @@ HTTPS, it installs as a standalone app with no browser chrome.
 
 ---
 
-## Step 6 — Verify the auth gate ⚠️
-
-**Do this one — don't skip it.**
+## Step 6 — The auth gate (already verified)
 
 Next.js 16 renamed the `middleware` convention to `proxy`, and Netlify's adapter
-documents only the old name. If their adapter ignores `src/proxy.ts`, the
-server-side redirect for signed-out visitors won't run in production.
+documents only the old name — so it was an open question whether `src/proxy.ts`
+would run in production at all.
 
-In a **private/incognito window**, open `https://your-site.netlify.app/diary`.
+**It does.** `npm run check:deploy` reports *"server-side redirect active
+(proxy.ts is running)"*, and requesting `/diary` while signed out returns a 307 to
+`/login`. Netlify's build log also lists `ƒ Proxy (Middleware)`.
 
-- **Expected:** you're sent to the sign-up/login page.
-- **If instead** you briefly see a loading spinner and *then* get redirected —
-  that's the fallback working. The proxy didn't run, but the app is still safe.
+Worth knowing anyway: **the redirect is a convenience, not the protection.** With
+the proxy disabled, protected pages serve an empty shell containing no personal
+data and all 22 API routes still answer `401`. The real enforcement is
+`requireUser()` in every route plus the mounting decision in `AppShell.tsx`, and
+neither can be bypassed by a forged cookie.
 
-**Either outcome is fine, and here's why I can say that:** I tested the app with
-the proxy disabled. Protected pages return an empty shell containing no personal
-data, and all 22 API routes answer `401` without a valid session. The redirect is
-a convenience; the actual protection is in the API layer and can't be bypassed.
+To re-check after any upgrade of Next.js or the Netlify adapter, open
+`/diary` in a private window — you should land on the login page.
 
-What would be a genuine problem is seeing **someone else's data**, or a page
-loading with real meals in it while signed out. That shouldn't happen — but if it
-ever does, take the site down and tell me.
+What *would* be a genuine problem is a page loading with real meals in it while
+signed out, or seeing another account's data. If that ever happens, take the site
+down and say so.
 
 ---
 
@@ -296,10 +385,33 @@ occasionally — it takes two seconds and it's the only copy you control.
 
 ## Troubleshooting
 
-**Every request 500s / "Something went wrong"**
-The env var scope. Confirm both variables have **Functions** ticked, then
-**Deploys → Trigger deploy → Clear cache and deploy site** (env changes need a
-rebuild).
+**Start here, always:**
+
+```powershell
+npm run check:deploy
+```
+
+It probes `/api/health`, which names the failing layer instead of leaving you with
+a generic 500. Every entry below maps to a `problem` value it reports.
+
+**`"Request failed (500)"` on login, or every request 500s**
+Run the check. It will say which of these it is:
+
+| `problem` | Meaning | Fix |
+|---|---|---|
+| `missing-env` | the function can't see the variables | Step 4, then **redeploy** |
+| `fell-back-to-local-file` | same cause, different symptom — it tried to open `/var/task/dev.db` | Step 4, then **redeploy** |
+| `bad-token` | Turso rejected the token | generate a new one, update Netlify, redeploy |
+| `schema-missing` | connected, but no tables | `npm run db:push:turso` |
+
+The overwhelmingly common cause is the second rule in Step 4: the variables were
+saved but **no new build has run since**.
+
+**Set the variables via CLI and nothing happened**
+Two silent failures, both covered in Step 4 Option B: the folder wasn't linked
+(`netlify link --name fitlyfy`), or you passed `--scope`, which the free plan
+ignores without an error. Confirm what actually landed with
+`netlify env:list --context production`.
 
 **Build fails: "secrets detected in build output"**
 Netlify scans the build for your own env values. If a false positive blocks you,
@@ -312,8 +424,9 @@ email. Forgot the password? There's no reset flow yet (it needs email sending) �
 see below.
 
 **"no such table: main.User"**
-Step 2 didn't complete. Run `npm run db:tables:turso` to see what's actually
-there.
+The schema was never pushed to this database. Uncomment `TURSO_*` in `.env` and
+run `npm run db:tables:turso` to see what's actually there, then
+`npm run db:push:turso`.
 
 **Local `npm run dev` shows live data**
 `TURSO_*` is still uncommented in `.env`. Comment both lines out. The startup log
