@@ -122,14 +122,16 @@ if (!dbOk) {
 
   // Use the health endpoint's diagnosis when we have one — it distinguishes
   // problems that otherwise look identical.
-  if (health?.problem === 'missing-env') {
+  if (health?.problem === 'missing-env' || health?.problem === 'fell-back-to-local-file') {
     console.log('  Cause: the function cannot see the environment variables.\n');
     console.log(`    host detected      : ${health.env.detectedHost}`);
     console.log(`    TURSO_DATABASE_URL : ${health.env.TURSO_DATABASE_URL.present ? 'present' : 'MISSING'}`);
     console.log(`    TURSO_AUTH_TOKEN   : ${health.env.TURSO_AUTH_TOKEN.present ? 'present' : 'MISSING'}`);
-    console.log('\n  Fix: Netlify → Site settings → Environment variables.');
-    console.log('  Each variable needs the "Functions" scope ticked, then:');
+    console.log('\n  Fix: Netlify → Site configuration → Environment variables.');
+    console.log('  Add both variables with Scopes = "All scopes" (the default,');
+    console.log('  and it includes Functions). Then:');
     console.log('    Deploys → Trigger deploy → Clear cache and deploy site');
+    console.log('  Environment changes only apply to a NEW build.');
   } else if (health?.problem === 'schema-missing') {
     console.log('  Cause: connected, but the tables are missing.');
     console.log('  Fix: uncomment TURSO_* in .env, then `npm run db:push:turso`.');

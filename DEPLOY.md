@@ -164,20 +164,24 @@ so the Functions scope can't be missed and you can't forget the redeploy.
 | `TURSO_DATABASE_URL` | `libsql://fitlydb-rahulpawar-fitly.aws-ap-south-1.turso.io` |
 | `TURSO_AUTH_TOKEN` | your token |
 
-For each one, set **Scopes**. This is the part that catches people:
+**Scopes:** leave it on **All scopes** — the default. That includes Functions,
+which is what the API routes need. (Selecting *specific* scopes is a paid feature;
+you don't need it, and "All scopes" is the correct answer regardless.)
 
-- ✅ **Functions** — required. Your API routes run as functions; without this
-  scope they see `undefined` and every request 500s.
-- ✅ **Builds** — tick it too. Harmless, and avoids a class of confusing failure.
+**Values:** *Same value for all deploy contexts* is fine.
 
-A variable with only *Builds* scope works during the build and is missing at
-runtime — which looks exactly like a code bug. If the live site 500s on every
-request, check this first.
+**Secret:** leave *Contains secret values* unchecked. Ticking it prevents the
+value being read back later, and Netlify's secrets scanning can then fail the
+build if the token appears anywhere in build output.
 
 Do **not** put these in `netlify.toml`. Variables declared there never reach
-functions, and they'd be committed to a public repo.
+functions at runtime, and they'd be committed to a public repo.
 
-Now click **Deploy**.
+⚠️ **After saving, you must redeploy.** Environment variables are baked in at
+build time, so an existing deploy will not pick them up:
+**Deploys → Trigger deploy → Clear cache and deploy site.**
+
+Then click **Deploy** (or trigger the redeploy).
 
 ---
 

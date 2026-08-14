@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 
-import { prisma } from '@/lib/db';
-
 export const dynamic = 'force-dynamic';
 
 /**
@@ -10,6 +8,11 @@ export const dynamic = 'force-dynamic';
  * Exists because the database-connection failure mode is otherwise opaque: every
  * route catches its errors and returns a generic message, so a missing env var, a
  * bad token and an unmigrated database all look identical from outside.
+ *
+ * `@/lib/db` is imported LAZILY, inside the handler. A static import would run
+ * that module's missing-credentials guard at module load and take this endpoint
+ * down with a bare 500 — exactly when it is most needed. The diagnostic has to
+ * survive the failure it diagnoses.
  *
  * Deliberately reports only *shapes* — whether a variable is present, its length,
  * its host — never a value. Safe to leave enabled: it exposes nothing an attacker
@@ -50,17 +53,21 @@ export async function GET() {
         ok: false,
         problem: 'missing-env',
         message:
-          'The Turso environment variables are not visible to this function. On ' +
-          'Netlify, check both variables have the "Functions" scope ticked, then ' +
-          'redeploy — environment changes only apply to a new build.',
+          'The Turso environment variables are not visible to this function. Add ' +
+          'TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in Netlify — "All scopes" is ' +
+          'correct, it includes Functions — then redeploy, because environment ' +
+          'changes only apply to a new build.',
         env,
       },
       { status: 503 },
     );
   }
 
-  // Env looks right, so actually try the database.
+  // Env looks right, so actually try the database. The import is deferred to
+  // here so a throw inside db.ts becomes a readable JSON body rather than a
+  // blank 500 (see the note above).
   try {
+    const { prisma } = await import('@/lib/db');
     const [users, foods] = await Promise.all([
       prisma.user.count(),
       prisma.food.count({ where: { userId: null } }),
@@ -82,25 +89,38 @@ export async function GET() {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    const problem = /no such table/i.test(message)
-      ? 'schema-missing'
-      : /UNAUTHORIZED|401|auth/i.test(message)
-        ? 'bad-token'
-        : 'query-failed';
+
+    // db.ts's own guard message comes first: it means the module decided it was
+    // hosted without credentials, which is the same root cause as missing-env but
+    // reaches us as a thrown error rather than an absent variable.
+    const problem = /TURSO_DATABASE_URL is not set on a hosted deployment/.test(message)
+      ? 'missing-env'
+      : /local database|\/var\/task/.test(message)
+        ? 'fell-back-to-local-file'
+        : /no such table/i.test(message)
+          ? 'schema-missing'
+          : /UNAUTHORIZED|401|auth token/i.test(message)
+            ? 'bad-token'
+            : 'query-failed';
+
+    const messages: Record<string, string> = {
+      'missing-env':
+        'This function has no Turso credentials. Add TURSO_DATABASE_URL and ' +
+        'TURSO_AUTH_TOKEN in Netlify (All scopes is fine), then redeploy — ' +
+        'environment changes only apply to a new build.',
+      'fell-back-to-local-file':
+        'The app tried to open a local SQLite file on the server, which means it ' +
+        'did not see the Turso credentials. Add them in Netlify and redeploy.',
+      'schema-missing':
+        'Connected, but the tables do not exist. Run `npm run db:push:turso`.',
+      'bad-token':
+        'The database rejected the auth token. Generate a new one in the Turso ' +
+        'dashboard, update it in Netlify, and redeploy.',
+      'query-failed': 'The database query failed. See `detail`.',
+    };
 
     return NextResponse.json(
-      {
-        ok: false,
-        problem,
-        message:
-          problem === 'schema-missing'
-            ? 'Connected, but the tables do not exist. Run `npm run db:push:turso`.'
-            : problem === 'bad-token'
-              ? 'The database rejected the auth token. Generate a new one in the Turso dashboard and update it in Netlify.'
-              : 'The database query failed. See `detail`.',
-        detail: message.slice(0, 400),
-        env,
-      },
+      { ok: false, problem, message: messages[problem], detail: message.slice(0, 400), env },
       { status: 503 },
     );
   }
