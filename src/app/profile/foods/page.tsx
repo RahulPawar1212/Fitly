@@ -72,7 +72,13 @@ export default function MyFoodsPage() {
 
   return (
     <>
-      <TopBar title="My foods" back="/profile" showHistory={false} showProfile={false} />
+      <TopBar
+        title="My foods"
+        back="/profile"
+        showHelp={false}
+        showHistory={false}
+        showProfile={false}
+      />
 
       <button
         type="button"

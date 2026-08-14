@@ -54,6 +54,7 @@ export default function HistoryDayPage() {
         title={isValidDayKey(date) ? formatDayLong(date) : 'Day'}
         subtitle={date === localDayKey() ? 'Today' : undefined}
         back="/history"
+        showHelp={false}
         showHistory={false}
       />
 

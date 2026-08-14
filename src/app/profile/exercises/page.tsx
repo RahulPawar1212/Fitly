@@ -76,6 +76,7 @@ export default function MyExercisesPage() {
       <TopBar
         title="My exercises"
         back="/profile"
+        showHelp={false}
         showHistory={false}
         showProfile={false}
       />

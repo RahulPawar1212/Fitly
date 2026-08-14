@@ -18,7 +18,15 @@ export const metadata = { title: 'Help · Fitzora' };
 export default function HelpPage() {
   return (
     <>
-      <TopBar title="Help" back="/profile" showHistory={false} showProfile={false} />
+      {/* Back to the home screen, not to Profile: the "?" in the header means
+          Help can be opened from any tab now. */}
+      <TopBar
+        title="How Fitzora works"
+        back="/"
+        showHelp={false}
+        showHistory={false}
+        showProfile={false}
+      />
 
       <div className="flex flex-col gap-3 pb-6">
         <Card>

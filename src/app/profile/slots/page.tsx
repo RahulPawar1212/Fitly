@@ -90,7 +90,13 @@ export default function MealSlotsPage() {
 
   return (
     <>
-      <TopBar title="Meal slots" back="/profile" showHistory={false} showProfile={false} />
+      <TopBar
+        title="Meal slots"
+        back="/profile"
+        showHelp={false}
+        showHistory={false}
+        showProfile={false}
+      />
 
       {loading && <Spinner />}
 

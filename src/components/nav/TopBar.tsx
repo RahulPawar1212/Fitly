@@ -2,12 +2,13 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 /**
- * Screen header. Carries History and Profile so the bottom nav can stay at five
- * items.
+ * Screen header. Carries Help, History and Profile so the bottom nav can stay at
+ * five items.
  */
 export function TopBar({
   title,
   subtitle,
+  showHelp = true,
   showHistory = true,
   showProfile = true,
   back,
@@ -16,6 +17,8 @@ export function TopBar({
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
+  /** The "?" icon. On by default — help should never be more than one tap away. */
+  showHelp?: boolean;
   showHistory?: boolean;
   showProfile?: boolean;
   /** href for a back chevron, when this screen is a sub-page. */
@@ -52,6 +55,22 @@ export function TopBar({
       </div>
 
       {children}
+
+      {showHelp && (
+        <Link
+          href="/help"
+          aria-label="Help — how this app works"
+          title="How this app works"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2}>
+            <circle cx="12" cy="12" r="9" />
+            {/* Question mark, drawn rather than typed so it scales with the icon. */}
+            <path d="M9.2 9.3a2.9 2.9 0 015.6 1c0 1.9-2.8 2.3-2.8 4" strokeLinecap="round" />
+            <path d="M12 17.6h.01" strokeLinecap="round" strokeWidth={2.5} />
+          </svg>
+        </Link>
+      )}
 
       {showHistory && (
         <Link
