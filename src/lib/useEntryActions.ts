@@ -9,6 +9,7 @@ import {
   deleteFoodEntry,
   logExercise,
   logFood,
+  logSteps,
 } from '@/lib/api';
 import type { ExerciseEntryDto, FoodEntryDto } from '@/types/dto';
 
@@ -78,17 +79,30 @@ export function useEntryActions() {
           actionLabel: 'Undo',
           onAction: async () => {
             try {
-              await logExercise({
-                dayKey: entry.dayKey,
-                exerciseId: entry.exerciseId ?? undefined,
-                minutes: entry.minutes,
-                name: entry.name,
-                met: entry.met,
-                // Preserve the original weight so the restored entry reports
-                // the same burn it did before.
-                bodyWeightKg: entry.bodyWeightKg,
-                note: entry.note ?? undefined,
-              });
+              if (entry.steps != null) {
+                // A step entry must be restored as one, or the step count is
+                // lost and it comes back as a plain duration.
+                await logSteps({
+                  dayKey: entry.dayKey,
+                  steps: entry.steps,
+                  // Only pass the duration back if it was measured; re-sending an
+                  // estimate would record it as if the user had typed it.
+                  ...(entry.minutesEstimated ? {} : { minutes: entry.minutes }),
+                  note: entry.note ?? undefined,
+                });
+              } else {
+                await logExercise({
+                  dayKey: entry.dayKey,
+                  exerciseId: entry.exerciseId ?? undefined,
+                  minutes: entry.minutes,
+                  name: entry.name,
+                  met: entry.met,
+                  // Preserve the original weight so the restored entry reports
+                  // the same burn it did before.
+                  bodyWeightKg: entry.bodyWeightKg,
+                  note: entry.note ?? undefined,
+                });
+              }
               await refresh();
             } catch {
               toast.error('Could not undo — please log it again');

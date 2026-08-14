@@ -10,3 +10,4 @@ export * from './energy';
 export * from './burn';
 export * from './nutrition';
 export * from './trend';
+export * from './steps';

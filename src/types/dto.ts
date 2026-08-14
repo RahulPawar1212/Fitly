@@ -111,6 +111,12 @@ export interface ExerciseEntryDto {
   kcalBurned: number;
   note: string | null;
   loggedAt: string;
+
+  // --- set only for step-based walking entries ---
+  steps: number | null;
+  distanceKm: number | null;
+  /** True when `minutes` was estimated from cadence, not measured. */
+  minutesEstimated: boolean;
 }
 
 export interface WaterDto {

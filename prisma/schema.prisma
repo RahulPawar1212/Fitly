@@ -233,6 +233,14 @@ model ExerciseEntry {
   exerciseId String?
   minutes    Float
 
+  // --- step-based entries (walking logged as a step count) ---
+  // Null for ordinary duration-based entries. When set, `minutes` may have been
+  // estimated from cadence rather than measured — `minutesEstimated` says which,
+  // so the UI can avoid presenting a guess as a measurement.
+  steps            Int?
+  distanceKm       Float?
+  minutesEstimated Boolean @default(false)
+
   // --- immutable snapshot ---
   nameSnapshot         String
   metSnapshot          Float

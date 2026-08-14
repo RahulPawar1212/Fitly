@@ -13,7 +13,7 @@
  */
 import { createClient } from '@libsql/client';
 import 'dotenv/config';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const url = process.env.TURSO_DATABASE_URL;
@@ -39,7 +39,10 @@ const client = createClient({ url, authToken });
 
 async function listTables() {
   const res = await client.execute(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+    // `_`-prefixed tables are bookkeeping (_applied_migrations,
+    // _prisma_migrations) and only add noise to the listing.
+    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' " +
+      "AND name NOT LIKE '\\_%' ESCAPE '\\' ORDER BY name",
   );
   return res.rows.map((r) => String(r.name));
 }
@@ -59,17 +62,6 @@ async function main() {
     return;
   }
 
-  // Refuse to re-run over a populated database. The migration is CREATE TABLE
-  // only, so re-applying would fail anyway — but failing here, before touching
-  // anything, gives a clearer message than a SQL error.
-  if (existing.includes('User')) {
-    console.log(
-      `This database already has the schema (${existing.length} tables).\n` +
-        'Nothing to do. Use --list to inspect it.',
-    );
-    return;
-  }
-
   const migrationsDir = path.join(process.cwd(), 'prisma', 'migrations');
   const dirs = readdirSync(migrationsDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
@@ -81,20 +73,68 @@ async function main() {
     process.exit(1);
   }
 
-  for (const dir of dirs) {
-    const file = path.join(migrationsDir, dir, 'migration.sql');
+  // Turso has no _prisma_migrations table (Prisma Migrate can't reach it), so we
+  // keep our own record of what has been applied. Without this there is no way to
+  // tell an already-migrated database from a fresh one.
+  await client.execute(
+    `CREATE TABLE IF NOT EXISTS "_applied_migrations" (
+       name TEXT PRIMARY KEY,
+       appliedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+     )`,
+  );
+
+  const appliedRows = await client.execute('SELECT name FROM "_applied_migrations"');
+  const applied = new Set(appliedRows.rows.map((r) => String(r.name)));
+
+  // A database created before this tracking existed has tables but no records.
+  // Treat the first migration as already applied so we don't try to recreate it.
+  if (applied.size === 0 && existing.includes('User')) {
+    console.log(`Existing schema found (${existing.length} tables) but no migration`);
+    console.log('record. Marking the initial migration as already applied.\n');
+    await client.execute({
+      sql: 'INSERT INTO "_applied_migrations" (name) VALUES (?)',
+      args: [dirs[0]],
+    });
+    applied.add(dirs[0]);
+  }
+
+  const pending = dirs.filter((d) => !applied.has(d));
+
+  if (pending.length === 0) {
+    console.log(`Up to date — ${dirs.length} migration(s) already applied.`);
+    console.log('Use --list to inspect the database.');
+    return;
+  }
+
+  for (const dir of pending) {
+    // Prefer turso.sql when a migration ships one: Prisma rebuilds whole tables
+    // to add a column, which is needlessly destructive against live data, so an
+    // additive hand-written equivalent is used instead where provided.
+    const tursoFile = path.join(migrationsDir, dir, 'turso.sql');
+    const file = existsSync(tursoFile)
+      ? tursoFile
+      : path.join(migrationsDir, dir, 'migration.sql');
+
     const sql = readFileSync(file, 'utf8');
-    console.log(`Applying ${dir}…`);
+    console.log(`Applying ${dir}${file === tursoFile ? ' (turso.sql)' : ''}…`);
+
     // executeMultiple runs the statements sequentially and stops on the first
     // error. It does NOT wrap them in a transaction, so the SQL supplies its own.
     await client.executeMultiple(`BEGIN;\n${sql}\nCOMMIT;`);
+    await client.execute({
+      sql: 'INSERT INTO "_applied_migrations" (name) VALUES (?)',
+      args: [dir],
+    });
   }
 
   const after = await listTables();
-  console.log(`\nDone. ${after.length} tables created:`);
-  console.log('  ' + after.join(', '));
-  // With TURSO_* still set in .env, the seeder targets this same remote DB.
-  console.log('\nNext: npm run db:seed   (loads the shared food catalogue)');
+  console.log(`\nDone. ${pending.length} migration(s) applied.`);
+  console.log(`Tables (${after.length}): ${after.join(', ')}`);
+
+  if (!existing.includes('Food')) {
+    // With TURSO_* still set in .env, the seeder targets this same remote DB.
+    console.log('\nNext: npm run db:seed   (loads the shared food catalogue)');
+  }
 }
 
 main()

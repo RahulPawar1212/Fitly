@@ -225,9 +225,21 @@ export const logExercise = (body: {
 }) =>
   post<{ entry: ExerciseEntryDto; totals: DayTotals }>('/api/exercise-entries', body);
 
+/**
+ * Log a walk as a step count. `minutes` is optional — without it the duration is
+ * estimated from an average cadence and flagged as such.
+ */
+export const logSteps = (body: {
+  dayKey: string;
+  steps: number;
+  minutes?: number;
+  note?: string;
+}) =>
+  post<{ entry: ExerciseEntryDto; totals: DayTotals }>('/api/exercise-entries', body);
+
 export const updateExerciseEntry = (
   id: string,
-  body: { minutes?: number; dayKey?: string; note?: string | null },
+  body: { minutes?: number; steps?: number; dayKey?: string; note?: string | null },
 ) =>
   patch<{ entry: ExerciseEntryDto; totals: DayTotals }>(
     `/api/exercise-entries/${id}`,

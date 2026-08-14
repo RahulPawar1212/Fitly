@@ -145,6 +145,9 @@ type ExerciseEntryRow = {
   dayKey: string;
   exerciseId: string | null;
   minutes: number;
+  steps: number | null;
+  distanceKm: number | null;
+  minutesEstimated: boolean;
   nameSnapshot: string;
   metSnapshot: number;
   bodyWeightKgSnapshot: number;
@@ -165,6 +168,9 @@ export function toExerciseEntryDto(e: ExerciseEntryRow): ExerciseEntryDto {
     kcalBurned: e.kcalBurned,
     note: e.note,
     loggedAt: e.loggedAt.toISOString(),
+    steps: e.steps,
+    distanceKm: e.distanceKm,
+    minutesEstimated: e.minutesEstimated,
   };
 }
 

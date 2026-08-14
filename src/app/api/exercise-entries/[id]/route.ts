@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server';
 
 import { metBurnKcal } from '@/lib/calc/burn';
+import { MAX_STEPS, MIN_STEPS, formatSteps, stepEntry } from '@/lib/calc/steps';
 import { getDayTotals, toExerciseEntryDto } from '@/lib/day';
 import { prisma } from '@/lib/db';
 import { requireUser } from '@/lib/session';
@@ -29,24 +30,63 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 
     const body = await readJson(req);
     const minutes = optionalNumber(body.minutes, 'minutes', RANGES.minutes);
+    const steps = optionalNumber(body.steps, 'steps', {
+      min: MIN_STEPS,
+      max: MAX_STEPS,
+    });
     const dayKey = body.dayKey === undefined ? undefined : requireDayKey(body.dayKey);
     const note =
       body.note === undefined ? undefined : optionalString(body.note, 'note', 200) ?? null;
 
-    // Recompute from the SNAPSHOT MET and snapshot weight, not from the current
-    // exercise row or the current profile — editing the duration of a workout
-    // from two months ago must not re-price it at today's body weight.
-    const nextMinutes = minutes ?? existing.minutes;
-    const kcalBurned = metBurnKcal(
-      existing.metSnapshot,
-      existing.bodyWeightKgSnapshot,
-      nextMinutes,
-    );
+    // Correcting the step count on a walk — the "I left it running by mistake"
+    // case — has to redo the whole derivation: distance, pace and burn all follow
+    // from the count. Snapshot weight is reused, not today's, so an old entry is
+    // never silently re-priced.
+    const isStepEntry = existing.steps != null;
+    let derivedFields: Record<string, unknown> = {};
+    let kcalBurned: number;
+
+    if (isStepEntry && (steps !== undefined || minutes !== undefined)) {
+      const nextSteps = steps ?? existing.steps ?? 0;
+      // A previously estimated duration stays estimated unless one is supplied.
+      const nextMinutes =
+        minutes ?? (existing.minutesEstimated ? undefined : existing.minutes);
+
+      const derived = stepEntry(
+        nextSteps,
+        // Height only affects stride; using the current value is fine and keeps
+        // this simple. Weight is what must not drift, and that is snapshotted.
+        user.heightCm,
+        existing.bodyWeightKgSnapshot,
+        nextMinutes,
+      );
+
+      kcalBurned = derived.kcalBurned;
+      derivedFields = {
+        steps: nextSteps,
+        minutes: derived.minutes,
+        distanceKm: derived.distanceKm,
+        minutesEstimated: derived.minutesEstimated,
+        metSnapshot: derived.met,
+        nameSnapshot: `Walking — ${formatSteps(nextSteps)} steps`,
+      };
+    } else {
+      // Recompute from the SNAPSHOT MET and snapshot weight, not from the current
+      // exercise row or the current profile — editing the duration of a workout
+      // from two months ago must not re-price it at today's body weight.
+      const nextMinutes = minutes ?? existing.minutes;
+      kcalBurned = metBurnKcal(
+        existing.metSnapshot,
+        existing.bodyWeightKgSnapshot,
+        nextMinutes,
+      );
+      if (minutes !== undefined) derivedFields = { minutes };
+    }
 
     const entry = await prisma.exerciseEntry.update({
       where: { id },
       data: {
-        ...(minutes !== undefined && { minutes }),
+        ...derivedFields,
         ...(dayKey !== undefined && { dayKey }),
         ...(note !== undefined && { note }),
         kcalBurned,

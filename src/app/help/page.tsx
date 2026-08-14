@@ -195,6 +195,49 @@ export default function HelpPage() {
         </Section>
 
         {/* ---------------------------------------------------------------- */}
+        <Section title="Logging steps" emoji="👣">
+          <P>
+            <Ref>Exercise → Log steps</Ref>. Type the number and Fitzora works out
+            the distance and calories.
+          </P>
+          <Example>
+            8,420 steps at 175 cm and 74 kg → <strong>6.1 km</strong>,{' '}
+            <strong>~347 kcal</strong>
+          </Example>
+          <Bullets>
+            <li>
+              <strong>Distance</strong> comes from your height — a taller person
+              covers more ground per step. Set your height in Profile for a better
+              figure.
+            </li>
+            <li>
+              <strong>Minutes are optional.</strong> Add them if you know them and
+              the calorie estimate improves, because a brisk walk burns more per
+              minute than a stroll. Left blank, the duration is estimated at an
+              average pace and clearly marked <em>(est.)</em>.
+            </li>
+            <li>
+              Got the number wrong? Tap the entry to correct it, or the{' '}
+              <strong>×</strong> to remove it.
+            </li>
+          </Bullets>
+          <Callout tone="warn">
+            <strong>Where the step number comes from.</strong> Fitzora cannot count
+            steps itself. A website is not allowed to read the motion sensor while
+            the screen is off — the browser stops sending that data the moment the
+            page is hidden, so any in-app counter would silently miss most of your
+            walk. Your phone&apos;s built-in health app and fitness bands do not
+            have that limitation, because they run at the operating-system level.
+            So read the number from there and enter it here.
+          </Callout>
+          <P>
+            On Android that is <strong>Google Fit</strong>, <strong>Samsung
+            Health</strong> or your phone&apos;s own health app; on iPhone it is{' '}
+            <strong>Health</strong>, which counts steps automatically with no setup.
+          </P>
+        </Section>
+
+        {/* ---------------------------------------------------------------- */}
         <Section title="The other numbers" emoji="📊">
           <Bullets>
             <li>
