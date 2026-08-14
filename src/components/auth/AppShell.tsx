@@ -9,17 +9,23 @@ import { Spinner } from '@/components/ui/EmptyState';
 import { useAuth } from '@/context/AuthContext';
 import { DayProvider } from '@/context/DayContext';
 
-/** Routes that render on their own, with no nav and no data loading. */
-const PUBLIC_ROUTES = ['/login', '/signup'];
+/**
+ * Routes that render on their own, with no nav and no data loading.
+ *
+ * `/help` is included because it fetches nothing — it should be readable before
+ * signing up, and it is the one page that must still work when something else is
+ * broken.
+ */
+const PUBLIC_ROUTES = ['/login', '/signup', '/help'];
 
 /**
  * Decides whether to render the app or send you to sign in.
  *
- * The gate lives here rather than in middleware because it also controls
+ * The gate lives here rather than in the proxy because it also controls
  * MOUNTING: DayProvider must not mount for a signed-out visitor, or it would
  * fire `/api/day`, take a 401, and bounce back — a redirect loop instead of a
- * login page. Middleware still does a cheap cookie check for direct navigations
- * (see middleware.ts); this is the authoritative gate.
+ * login page. `src/proxy.ts` still does a cheap cookie check for direct
+ * navigations; this is the authoritative gate.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -40,7 +46,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     // `?next=` destination.
   }, [user, loading, isPublic, pathname, router]);
 
-  if (isPublic) return <>{children}</>;
+  // A signed-out visitor on a public page gets the bare page: no nav to tap and
+  // no data layer to 401. A signed-IN visitor falls through to the full shell
+  // below, so reading /help doesn't strand them without the bottom nav.
+  if (isPublic && !user) return <>{children}</>;
 
   // Waiting on /api/auth/me, or mid-redirect. Showing a spinner rather than the
   // app avoids a flash of someone else's empty dashboard.

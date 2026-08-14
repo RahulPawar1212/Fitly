@@ -298,6 +298,11 @@ export default function ProfilePage() {
         <Card>
           <h2 className="mb-2 text-sm font-semibold">Manage</h2>
           <div className="flex flex-col">
+            <RowLink
+              href="/help"
+              label="How this app works"
+              hint="Goals, logging, exercise — in plain language"
+            />
             <RowLink href="/profile/slots" label="Meal slots" hint="Rename, reorder, add" />
             <RowLink
               href="/profile/foods"

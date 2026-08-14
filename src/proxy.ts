@@ -21,7 +21,17 @@ import { NextResponse, type NextRequest } from 'next/server';
  */
 
 const SESSION_COOKIE = 'session_token';
-const PUBLIC_PATHS = ['/login', '/signup'];
+
+// Must mirror PUBLIC_ROUTES in components/auth/AppShell.tsx. `/help` is public so
+// it can be read before signing up.
+const PUBLIC_PATHS = ['/login', '/signup', '/help'];
+
+/**
+ * Pages that make no sense once you are signed in, so a logged-in visitor is
+ * bounced to the app. Deliberately NOT all of PUBLIC_PATHS: /help is public *and*
+ * useful when signed in, so it must not redirect.
+ */
+const AUTH_ONLY_PATHS = ['/login', '/signup'];
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -36,7 +46,7 @@ export function proxy(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (hasCookie && isPublic) {
+  if (hasCookie && AUTH_ONLY_PATHS.includes(pathname)) {
     const url = req.nextUrl.clone();
     url.pathname = '/';
     url.search = '';

@@ -35,8 +35,8 @@ if ($status -match 'Not logged in') {
 
 # --- link this folder to the site ---------------------------------------------
 if (-not (Test-Path .netlify/state.json)) {
-  Write-Host "`nLinking to the fitlyfy site..." -ForegroundColor Cyan
-  netlify link --name fitlyfy
+  Write-Host "`nLinking to the fitzora site..." -ForegroundColor Cyan
+  netlify link --name fitzora
   if ($LASTEXITCODE -ne 0) { Fail "Could not link. Try:  netlify link   and pick the site." }
 }
 

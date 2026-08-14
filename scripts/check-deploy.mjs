@@ -9,7 +9,7 @@
  * only breaks the moment something touches the database. This probes an endpoint
  * that must query it, so a pass means the connection genuinely works.
  */
-const SITE = (process.argv[2] ?? 'https://fitlyfy.netlify.app').replace(/\/$/, '');
+const SITE = (process.argv[2] ?? 'https://fitzora.netlify.app').replace(/\/$/, '');
 
 const results = [];
 const record = (name, ok, detail) => {

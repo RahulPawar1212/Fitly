@@ -88,12 +88,25 @@ export default function TodayPage() {
               </span>
             </>
           ) : (
-            <Link
-              href="/profile"
-              className="mt-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
-            >
-              Set a goal →
-            </Link>
+            // No goal yet: say what that means and where it comes from, rather
+            // than leaving a bare "0" and an unexplained button.
+            <>
+              <span className="mt-1 max-w-[11rem] text-xs leading-snug text-slate-500 dark:text-slate-400">
+                Add your height, weight and age to get a daily calorie target
+              </span>
+              <Link
+                href="/profile"
+                className="mt-2 rounded-full bg-brand-500 px-4 py-1.5 text-xs font-semibold text-white"
+              >
+                Set a goal →
+              </Link>
+              <Link
+                href="/help"
+                className="mt-1.5 text-[11px] font-medium text-slate-400 underline-offset-2 hover:underline"
+              >
+                What&apos;s this?
+              </Link>
+            </>
           )}
         </Ring>
 

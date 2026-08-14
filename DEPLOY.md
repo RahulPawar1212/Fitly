@@ -9,11 +9,11 @@ Code lives at <https://github.com/RahulPawar1212/Fitly> (already pushed).
 
 > ### Status: deployed and working
 >
-> **<https://fitlyfy.netlify.app>** is live and connected to its database.
+> **<https://fitzora.netlify.app>** is live and connected to its database.
 >
 > - ✅ Turso database `fitlydb-rahulpawar-fitly` (AWS Mumbai) — 11 tables,
 >   236 foods, 59 exercises.
-> - ✅ Netlify site `fitlyfy`, environment variables set via the CLI.
+> - ✅ Netlify site `fitzora`, environment variables set via the CLI.
 > - ✅ Verified end to end on the deployed app: signup, profile (BMR 1669 /
 >   TDEE 2587), automatic meal-slot creation, and logging 2 rotis = 208 kcal.
 >
@@ -21,13 +21,16 @@ Code lives at <https://github.com/RahulPawar1212/Fitly> (already pushed).
 > a rotated token, or a second site. If something breaks, start with
 > `npm run check:deploy`.
 
-> **The app is called Fitzora; the infrastructure still carries older names.**
-> The GitHub repo is `Fitly`, the Netlify site is `fitlyfy` (so the URL is
-> `fitlyfy.netlify.app`), and the Turso database is `fitlydb-rahulpawar-fitly`.
-> Those are deliberately left alone — they are live identifiers, and renaming them
-> would change the URL and break the `netlify link` / `TURSO_DATABASE_URL`
-> commands below. See *Renaming the infrastructure* at the end if you want them to
-> match.
+> **Names, and which of them matter.**
+> The app and the Netlify site are both **Fitzora**, so the live URL is
+> `fitzora.netlify.app`. Two identifiers still carry older names on purpose:
+>
+> - **GitHub repo `Fitly`** — harmless. Nobody using the app sees it, and GitHub
+>   redirects the old URL if you ever rename it.
+> - **Turso database `fitlydb-rahulpawar-fitly`** — must stay. It cannot be
+>   renamed, only recreated, and the name appears nowhere a user can see.
+>
+> See *Renaming the infrastructure* at the end if the inconsistency bothers you.
 
 ## Command reference
 
@@ -223,7 +226,7 @@ Then redeploy: **Deploys → Trigger deploy → Clear cache and deploy site.**
 ```powershell
 npm install -g netlify-cli    # once
 netlify login                 # opens a browser to authorise
-netlify link --name fitlyfy   # ← REQUIRED; see trap 1
+netlify link --name fitzora   # ← REQUIRED; see trap 1
 ```
 
 Then either run the helper, which reads `.env`, sets both variables and verifies
@@ -282,7 +285,7 @@ netlify env:list --context production
 npm run check:deploy
 ```
 
-Or open <https://fitlyfy.netlify.app/api/health>. You want:
+Or open <https://fitzora.netlify.app/api/health>. You want:
 
 ```json
 { "ok": true, "database": { "connected": true, "target": "turso (remote)",
@@ -417,7 +420,7 @@ saved but **no new build has run since**.
 
 **Set the variables via CLI and nothing happened**
 Two silent failures, both covered in Step 4 Option B: the folder wasn't linked
-(`netlify link --name fitlyfy`), or you passed `--scope`, which the free plan
+(`netlify link --name fitzora`), or you passed `--scope`, which the free plan
 ignores without an error. Confirm what actually landed with
 `netlify env:list --context production`.
 
@@ -467,31 +470,29 @@ their nameservers. HTTPS is provisioned automatically via Let's Encrypt.
 
 A custom domain is also the cleanest answer to the naming mismatch below: with
 `fitzora.app` (or whatever you buy) pointing at the site, nobody ever sees
-`fitlyfy.netlify.app` again, and none of the identifiers need touching.
+`fitzora.netlify.app` again, and none of the identifiers need touching.
 
 ---
 
-## Renaming the infrastructure (optional)
+## Renaming the infrastructure
 
-The app is **Fitzora**, but the repo, Netlify site and Turso database still carry
-earlier names. Nothing is broken by that — users only ever see the app name and
-the URL. Rename them only if the inconsistency bothers you, and note that each one
-has a cost.
+### Netlify site — already done ✅
 
-### Netlify site → changes your URL
+The site was renamed to `fitzora`, so the URL is now
+**<https://fitzora.netlify.app>** and the old `fitlyfy.netlify.app` returns 404.
 
-**Site configuration → Site details → Change site name.** Setting it to `fitzora`
-makes the URL `https://fitzora.netlify.app`.
-
-The old URL stops working, so anything already pointing at it breaks — including
-the app installed on your phone's home screen, which you would need to re-add.
-Afterwards, relink locally and update the checker's default:
+Renaming a site changes its URL, which breaks anything pointing at the old one —
+including an app already added to a phone's home screen, which has to be re-added.
+Two follow-ups are needed locally, both already applied here:
 
 ```powershell
-netlify link --name fitzora
+netlify link --name fitzora    # relink this folder to the renamed site
 ```
 
-### GitHub repo → changes the clone URL
+…and `scripts/check-deploy.mjs` needs its default URL updated, or it will happily
+report the *old* address as down.
+
+### GitHub repo → optional, low risk
 
 Rename on GitHub (**Settings → Repository name**), then repoint your local clone:
 
@@ -499,10 +500,9 @@ Rename on GitHub (**Settings → Repository name**), then repoint your local clo
 git remote set-url origin https://github.com/RahulPawar1212/Fitzora.git
 ```
 
-GitHub redirects the old URL, so the Netlify connection keeps working. This is the
-lowest-risk of the three.
+GitHub redirects the old URL, so the Netlify build connection keeps working.
 
-### Turso database → don't
+### Turso database → leave it
 
-There is no rename; you would create a new database and migrate the data across.
-The host name appears nowhere a user can see it. Leave it.
+There is no rename operation; you would create a new database and migrate the data
+across. The host name appears nowhere a user can see. Not worth it.
