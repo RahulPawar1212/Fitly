@@ -20,7 +20,7 @@ export function TopBar({
   showProfile?: boolean;
   /** href for a back chevron, when this screen is a sub-page. */
   back?: string;
-  /** Show the Fitlyfy wordmark above the title. Home screen only. */
+  /** Show the Fitzora wordmark above the title. Home screen only. */
   brand?: boolean;
   children?: ReactNode;
 }) {
@@ -28,7 +28,7 @@ export function TopBar({
     <div className={brand ? 'pt-3' : undefined}>
       {brand && (
         <p className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">
-          Fitlyfy
+          Fitzora
         </p>
       )}
       <header className={`flex items-center gap-1 pb-2 ${brand ? 'pt-0.5' : 'pt-4'}`}>

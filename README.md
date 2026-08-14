@@ -1,4 +1,4 @@
-# Fitlyfy
+# Fitzora
 
 A mobile-first, **multi-user** Indian calorie and fitness tracker, built around how
 Indian food is actually eaten — you log **2 rotis and a katori of dal**, not
@@ -108,12 +108,15 @@ what day it is and tells the server explicitly.
 | `npm run dev` | dev server on :3000 |
 | `npm run build` | production build (runs `prisma generate` first) |
 | `npm run start` | serve the production build locally, against `dev.db` |
-| `npm run test:run` | unit tests (164) |
+| `npm run test:run` | unit tests (194) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | eslint |
 | `npm run db:seed` | load/refresh the shared food & exercise catalogue (idempotent) |
 | `npm run db:migrate` | author a new migration |
 | `npm run db:studio` | browse the database |
+| `npm run db:push:turso` | create the tables on the remote Turso database |
+| `npm run db:tables:turso` | list the remote tables with row counts |
+| `npm run check:deploy` | probe the deployed site for problems |
 
 ## Editing the food database
 
@@ -151,11 +154,14 @@ npm run db:seed           # load the shared food + exercise catalogue
 git push                  # Netlify builds and deploys automatically
 ```
 
-In Netlify, set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in the UI **with the
-Functions scope enabled**. Variables defined in `netlify.toml` are not available at
-function runtime, and a variable missing the Functions scope works during the
-build but is `undefined` inside route handlers — which looks exactly like a code
-bug.
+In Netlify, set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in the UI with
+**All scopes** (the default — it includes Functions), then **redeploy**: the
+variables are baked in at build time, so an existing deploy will not pick them up.
+Never declare them in `netlify.toml`, where they never reach function runtime at
+all.
+
+`npm run check:deploy` probes the live site and names the failing layer if
+something is wrong.
 
 > **Migrations can't run against Turso.** `prisma migrate deploy` needs a real
 > SQLite connection and Turso is HTTP-based. Author migrations against the local

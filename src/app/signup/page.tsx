@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { Spinner } from '@/components/ui/EmptyState';
 
-export const metadata = { title: 'Sign up · Fitlyfy' };
+export const metadata = { title: 'Sign up · Fitzora' };
 
 export default function SignupPage() {
   // See the note in login/page.tsx — useSearchParams() needs this boundary.

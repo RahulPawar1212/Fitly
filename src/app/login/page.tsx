@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { Spinner } from '@/components/ui/EmptyState';
 
-export const metadata = { title: 'Sign in · Fitlyfy' };
+export const metadata = { title: 'Sign in · Fitzora' };
 
 export default function LoginPage() {
   // AuthForm reads `?next=` with useSearchParams(), which forces a client-side

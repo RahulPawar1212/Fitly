@@ -65,10 +65,10 @@ export async function GET() {
   };
 
   const payload = {
-    format: 'fitlyfy-export',
-    // Any importer should accept the previous identifier too, so backups taken
-    // before the app was named still restore.
-    formatAliases: ['fitness-tracker-export'],
+    format: 'fitzora-export',
+    // Every identifier the app has shipped under. An importer should accept all
+    // of them, so a backup downloaded before a rename still restores.
+    formatAliases: ['fitlyfy-export', 'fitness-tracker-export'],
     version: 2,
     exportedAt: new Date().toISOString(),
     profile,
@@ -84,7 +84,7 @@ export async function GET() {
   return new NextResponse(JSON.stringify(payload, null, 2), {
     headers: {
       'Content-Type': 'application/json',
-      'Content-Disposition': `attachment; filename="fitlyfy-backup-${localDayKey()}.json"`,
+      'Content-Disposition': `attachment; filename="fitzora-backup-${localDayKey()}.json"`,
     },
   });
 }

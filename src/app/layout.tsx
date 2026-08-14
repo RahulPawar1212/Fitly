@@ -8,11 +8,11 @@ import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Fitlyfy',
+  title: 'Fitzora',
   description: 'Indian calorie and fitness tracker — meals, exercise, weight and water.',
   manifest: '/manifest.webmanifest',
   // `title` here is the label under the icon once added to a phone's home screen.
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Fitlyfy' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Fitzora' },
 };
 
 export const viewport: Viewport = {

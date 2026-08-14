@@ -1,4 +1,4 @@
-# Deploying Fitlyfy
+# Deploying Fitzora
 
 Getting the app live on **Netlify** with a **Turso** database, from Windows,
 without WSL.
@@ -20,6 +20,14 @@ Code lives at <https://github.com/RahulPawar1212/Fitly> (already pushed).
 > The steps below are kept as the reference for redoing this — a new environment,
 > a rotated token, or a second site. If something breaks, start with
 > `npm run check:deploy`.
+
+> **The app is called Fitzora; the infrastructure still carries older names.**
+> The GitHub repo is `Fitly`, the Netlify site is `fitlyfy` (so the URL is
+> `fitlyfy.netlify.app`), and the Turso database is `fitlydb-rahulpawar-fitly`.
+> Those are deliberately left alone — they are live identifiers, and renaming them
+> would change the URL and break the `netlify link` / `TURSO_DATABASE_URL`
+> commands below. See *Renaming the infrastructure* at the end if you want them to
+> match.
 
 ## Command reference
 
@@ -456,3 +464,45 @@ build minutes instead. Check **Billing** if builds start getting rejected.
 
 **Domain management → Add a domain** in Netlify, then point your registrar at
 their nameservers. HTTPS is provisioned automatically via Let's Encrypt.
+
+A custom domain is also the cleanest answer to the naming mismatch below: with
+`fitzora.app` (or whatever you buy) pointing at the site, nobody ever sees
+`fitlyfy.netlify.app` again, and none of the identifiers need touching.
+
+---
+
+## Renaming the infrastructure (optional)
+
+The app is **Fitzora**, but the repo, Netlify site and Turso database still carry
+earlier names. Nothing is broken by that — users only ever see the app name and
+the URL. Rename them only if the inconsistency bothers you, and note that each one
+has a cost.
+
+### Netlify site → changes your URL
+
+**Site configuration → Site details → Change site name.** Setting it to `fitzora`
+makes the URL `https://fitzora.netlify.app`.
+
+The old URL stops working, so anything already pointing at it breaks — including
+the app installed on your phone's home screen, which you would need to re-add.
+Afterwards, relink locally and update the checker's default:
+
+```powershell
+netlify link --name fitzora
+```
+
+### GitHub repo → changes the clone URL
+
+Rename on GitHub (**Settings → Repository name**), then repoint your local clone:
+
+```powershell
+git remote set-url origin https://github.com/RahulPawar1212/Fitzora.git
+```
+
+GitHub redirects the old URL, so the Netlify connection keeps working. This is the
+lowest-risk of the three.
+
+### Turso database → don't
+
+There is no rename; you would create a new database and migrate the data across.
+The host name appears nowhere a user can see it. Leave it.

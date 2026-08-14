@@ -74,7 +74,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
         </div>
         {/* The app's name, so the login screen identifies itself. */}
         <p className="text-lg font-bold tracking-tight text-brand-600 dark:text-brand-400">
-          Fitlyfy
+          Fitzora
         </p>
         <h1 className="mt-2 text-2xl font-semibold">
           {isSignup ? 'Create your account' : 'Welcome back'}
