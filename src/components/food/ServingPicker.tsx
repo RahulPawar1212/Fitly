@@ -6,7 +6,12 @@ import { PresetChips, Stepper } from '@/components/ui/Stepper';
 import { scaleFood } from '@/lib/calc/nutrition';
 import type { FoodDto, MealSlotDto } from '@/types/dto';
 
-const PRESETS = [0.5, 1, 1.5, 2, 3];
+/**
+ * Quarter portions matter for Indian food: half a roti, a quarter katori of a rich
+ * gravy, a few spoons of sweet. The stepper below moves in 0.25 to match, so any
+ * chip value is reachable with − and +.
+ */
+const PRESETS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3];
 
 /**
  * Choose how many servings, then log.
@@ -84,8 +89,8 @@ export function ServingPicker({
           <Stepper
             value={servings}
             onChange={setServings}
-            step={0.5}
-            min={0.5}
+            step={0.25}
+            min={0.25}
             max={50}
             suffix={food.servingLabel}
           />

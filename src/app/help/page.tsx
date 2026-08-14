@@ -124,7 +124,9 @@ export default function HelpPage() {
             </li>
             <li>
               <strong>Tap the name</strong> instead to choose an amount — 2 rotis,
-              half a katori — and see the calories update as you change it.
+              half a katori, a quarter of a rich gravy — and see the calories update
+              as you change it. Amounts go in steps of a quarter, with{' '}
+              <Ref>0.25</Ref> to <Ref>3</Ref> as one-tap presets.
             </li>
             <li>
               The meal is <strong>chosen for you by the time of day</strong>. At
@@ -312,8 +314,8 @@ export default function HelpPage() {
           </Bullets>
           <P>
             These are the values used across the 236 built-in foods. If your portion
-            is bigger, log 1.5 or 2 servings rather than trying to be exact —
-            consistency matters more than precision.
+            is bigger or smaller, log 0.5, 0.75, 1.5 or 2 servings rather than
+            trying to be exact — consistency matters more than precision.
           </P>
         </Section>
 

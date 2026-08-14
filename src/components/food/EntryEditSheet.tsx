@@ -10,7 +10,8 @@ import { deleteFoodEntry, updateFoodEntry } from '@/lib/api';
 import { scaleServing } from '@/lib/calc/nutrition';
 import type { FoodEntryDto, MealSlotDto } from '@/types/dto';
 
-const PRESETS = [0.5, 1, 1.5, 2, 3];
+/** Matches ServingPicker, so logging and editing offer the same choices. */
+const PRESETS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3];
 
 /** Edit a logged entry: change the amount, move it to another meal, or delete. */
 export function EntryEditSheet({
@@ -96,8 +97,8 @@ export function EntryEditSheet({
         <Stepper
           value={servings}
           onChange={setServings}
-          step={0.5}
-          min={0.5}
+          step={0.25}
+          min={0.25}
           max={50}
           suffix={entry.servingLabel}
         />

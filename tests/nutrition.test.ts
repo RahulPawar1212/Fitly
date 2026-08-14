@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ZERO_NUTRITION,
   dayTotals,
+  formatServings,
   kcalFromMacros,
   progressFraction,
   roundNutrition,
@@ -42,6 +43,22 @@ describe('scaleServing', () => {
 
   it('handles half servings', () => {
     expect(scaleServing(ROTI, 0.5).kcal).toBe(52);
+  });
+
+  // Quarter portions are a preset in the UI (half a roti, a few spoons of a rich
+  // gravy), so they need to divide cleanly.
+  it('handles quarter servings', () => {
+    const q = scaleServing(ROTI, 0.25);
+    expect(q.kcal).toBe(26);
+    expect(q.proteinG).toBeCloseTo(0.8, 6);
+  });
+
+  it('adds four quarters back to exactly one serving', () => {
+    expect(scaleServing(ROTI, 0.25).kcal * 4).toBeCloseTo(ROTI.kcalPerServing, 6);
+    expect(scaleServing(ROTI, 0.75).kcal).toBeCloseTo(
+      scaleServing(ROTI, 0.25).kcal * 3,
+      6,
+    );
   });
 
   it('is identity at 1', () => {
@@ -178,6 +195,22 @@ describe('totalsByMealSlot', () => {
 
   it('returns an empty map for no entries', () => {
     expect(totalsByMealSlot([]).size).toBe(0);
+  });
+});
+
+describe('formatServings', () => {
+  it('shows quarters without trailing noise', () => {
+    // The UI steps in 0.25, so these are the values a user actually sees.
+    expect(formatServings(0.25)).toBe('0.25');
+    expect(formatServings(0.5)).toBe('0.5');
+    expect(formatServings(0.75)).toBe('0.75');
+    expect(formatServings(1)).toBe('1');
+    expect(formatServings(2.5)).toBe('2.5');
+  });
+
+  it('does not leak float drift into the label', () => {
+    // 0.1 + 0.2 style accumulation must not surface as "0.7500000000000001".
+    expect(formatServings(0.25 * 3)).toBe('0.75');
   });
 });
 
